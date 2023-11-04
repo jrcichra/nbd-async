@@ -53,6 +53,7 @@ pub async fn attach_device<P, S>(
     block_size: u32,
     block_count: u64,
     read_only: bool,
+    timeout: u64,
 ) -> io::Result<Server>
 where
     P: AsRef<Path>,
@@ -66,7 +67,7 @@ where
 
     sys::set_block_size(&file, block_size)?;
     sys::set_size_blocks(&file, block_count)?;
-    sys::set_timeout(&file, 10)?;
+    sys::set_timeout(&file, timeout)?;
     sys::clear_sock(&file)?;
 
     let inner_file = file.try_clone().await?;
@@ -93,6 +94,7 @@ pub async fn serve_local_nbd<P, B>(
     block_size: u32,
     block_count: u64,
     read_only: bool,
+    timeout: u64,
     block_device: B,
 ) -> io::Result<()>
 where
@@ -100,7 +102,15 @@ where
     B: Unpin + BlockDevice,
 {
     let (sock, kernel_sock) = UnixStream::pair()?;
-    let _server = attach_device(path, kernel_sock, block_size, block_count, read_only).await?;
+    let _server = attach_device(
+        path,
+        kernel_sock,
+        block_size,
+        block_count,
+        read_only,
+        timeout,
+    )
+    .await?;
     serve_nbd(block_device, sock).await?;
     Ok(())
 }
