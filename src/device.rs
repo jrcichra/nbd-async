@@ -85,11 +85,11 @@ where
         .open(path.as_ref())
         .await?;
 
-    let timeout = timeout_s.map_or(0, |v| v.get());
-
     sys::set_block_size(&file, block_size)?;
     sys::set_size_blocks(&file, block_count)?;
-    sys::set_timeout(&file, timeout)?;
+    if let Some(timeout) = timeout_s {
+        sys::set_timeout(&file, timeout.into())?;
+    }
     sys::clear_sock(&file)?;
 
     let inner_file = file.try_clone().await?;
